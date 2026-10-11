@@ -69,7 +69,18 @@ fi
 SIGNING_DIR="$SOURCE_ROOT/.crossgram-signing"
 mkdir -p "$SIGNING_DIR"
 KEYSTORE="$SIGNING_DIR/release.keystore"
-printf '%s' "${CROSSGRAM_KEYSTORE_BASE64:?missing keystore secret}" | base64 --decode > "$KEYSTORE"
+if [[ -n "${CROSSGRAM_KEYSTORE_BASE64:-}" ]]; then
+  printf '%s' "$CROSSGRAM_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+elif [[ "${CROSSGRAM_BUILD_ONLY:-false}" == true ]]; then
+  # Build-only artifacts must not require or publish production signing material.
+  export CROSSGRAM_KEYSTORE_PASSWORD=android CROSSGRAM_KEY_PASSWORD=android CROSSGRAM_KEY_ALIAS=crossgram-test
+  keytool -genkeypair -noprompt -keystore "$KEYSTORE" -storepass android -keypass android \
+    -alias crossgram-test -keyalg RSA -keysize 2048 -validity 2 -dname "CN=Crossgram CI Test Only"
+  echo "Test-signed APKs only; cannot update production installations." >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+else
+  echo "Missing production keystore secret" >&2
+  exit 1
+fi
 chmod 600 "$KEYSTORE"
 
 mkdir -p "$SOURCE_ROOT/TMessagesProj/config"

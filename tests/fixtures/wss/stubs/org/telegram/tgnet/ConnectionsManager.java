@@ -1,0 +1,1 @@
+package org.telegram.tgnet; public class ConnectionsManager { public static String lastId; public static void native_setServerConfig(int a,String i,String k,boolean e,boolean r){lastId=i;} public static void native_applyDatacenterAddress(int a,int d,String i,int p){} }

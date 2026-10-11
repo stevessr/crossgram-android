@@ -1,0 +1,31 @@
+name: WSS transport checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: corepack enable && yarn install --immutable
+      - run: yarn check
+      - name: Compile Android WSS helpers against SDK 35
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' >/dev/null
+          scripts/test-wss-java.sh
+      - name: Exercise JSON schema and signed-in account isolation
+        run: |
+          curl -fsSL https://repo.maven.apache.org/maven2/org/json/json/20250517/json-20250517.jar -o "$RUNNER_TEMP/json.jar"
+          echo "3ea61b2a06e31edf1c91134fe9106b0ebb16628be169f3db75bc7a2b06b45796  $RUNNER_TEMP/json.jar" | sha256sum -c -
+          scripts/test-wss-config.sh "$RUNNER_TEMP/json.jar"

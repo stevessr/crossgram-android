@@ -129,6 +129,7 @@ jobs:
         run: ccache --zero-stats
       - name: Patch and build five branded APKs
         env:
+          CROSSGRAM_BUILD_ONLY: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
           CROSSGRAM_KEYSTORE_BASE64: ${{ secrets.CROSSGRAM_KEYSTORE_BASE64 }}
           CROSSGRAM_KEYSTORE_PASSWORD: ${{ secrets.CROSSGRAM_KEYSTORE_PASSWORD }}
           CROSSGRAM_KEY_ALIAS: ${{ secrets.CROSSGRAM_KEY_ALIAS }}
