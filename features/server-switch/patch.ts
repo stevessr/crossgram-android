@@ -1,3 +1,4 @@
+import { patchWss } from "./wss-patch.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -491,6 +492,7 @@ export async function applyServerSwitch(root: string, _upstream: Upstream): Prom
   await patchHandshake(root, changedFiles);
 
   await patchLoginIcon(root, changedFiles);
+  await patchWss(root, changedFiles);
 
   return { changedFiles };
 }

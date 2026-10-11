@@ -133,3 +133,13 @@ release 签名使用以下 Actions Secrets：
 可选的 Telegram API ID/hash 必须成对设置，用于覆盖仓库内置的 Crossgram 默认身份。
 
 本地 keystore 和凭据位于被忽略的 `artifacts/` 目录，不应提交到 Git。
+
+## WSS MTProto / Cloudflare
+
+Android now accepts explicit `transport: "websocket"` configurations using
+`wss://.../mtproto`, without replacing MTProto encryption or the legacy TCP path.
+Use an empty account slot; WSS requires Android 7+. See
+[configuration, account isolation, limits and verification](docs/wss-mtproto.md)
+and the [test-only import JSON](examples/crossgram-wss-test.json). The test public
+key cannot authenticate an existing production origin. Manual `publish=false`
+builds may use a temporary test keystore when no release signing secret exists.
