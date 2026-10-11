@@ -49,6 +49,9 @@ public class ConfigHarness {
         java.lang.reflect.Method load=type.getDeclaredMethod("fromJson",JSONObject.class); load.setAccessible(true);
         java.lang.reflect.Method apply=ServerSwitchConfig.class.getDeclaredMethod("applyLocked",type,int.class,boolean.class); apply.setAccessible(true);
         Object loaded=load.invoke(null,store);
+        java.lang.reflect.Field cache=ServerSwitchConfig.class.getDeclaredField("cachedStore"); cache.setAccessible(true); cache.set(null,loaded);
+        check(ServerSwitchConfig.wssUrl(0,2,wss.nativeIdentity()).value.equals(wss.websocketUrl));
+        try {ServerSwitchConfig.wssUrl(0,2,"wss:stale"); throw new AssertionError();} catch(IllegalStateException expected){checks++;}
         apply.invoke(null,loaded,0,false); check(org.telegram.tgnet.ConnectionsManager.lastId.equals(wss.nativeIdentity()));
         apply.invoke(null,loaded,1,false); check(org.telegram.tgnet.ConnectionsManager.lastId.equals("wss:invalid"));
         apply.invoke(null,loaded,2,false); check(org.telegram.tgnet.ConnectionsManager.lastId.equals(""));
