@@ -45,7 +45,16 @@ public final class WssWire {
             int colon = lines[i].indexOf(':');
             if (colon <= 0) throw new IOException("wss_upgrade_header");
             String name = lines[i].substring(0, colon).toLowerCase(Locale.ROOT);
-            if (fields.put(name, lines[i].substring(colon+1).trim()) != null) throw new IOException("wss_upgrade_duplicate");
+            String value = lines[i].substring(colon+1).trim();
+            if (fields.containsKey(name)) {
+                // HTTP permits repeated extension/metadata fields such as Cloudflare's
+                // Server-Timing. Reject ambiguity only for fields that affect upgrade
+                // validation; ignore duplicate unrelated metadata.
+                if (name.equals("connection") || name.equals("upgrade")
+                        || name.startsWith("sec-websocket-")) throw new IOException("wss_upgrade_duplicate");
+                continue;
+            }
+            fields.put(name, value);
         }
         String accept = base64(MessageDigest.getInstance("SHA-1").digest((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.US_ASCII)));
         if (!accept.equals(fields.get("sec-websocket-accept"))

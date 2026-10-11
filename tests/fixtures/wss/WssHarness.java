@@ -38,12 +38,29 @@ public class WssHarness {
                     check(r.startsWith("GET /mtproto?dc=2%20x HTTP/1.1\r\nHost: example.com:8443\r\n"));
                     String key = r.split("Sec-WebSocket-Key: ")[1].split("\r\n")[0];
                     try { String accept=Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((key+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.US_ASCII)));
-                        reply=new ByteArrayInputStream(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: keep-alive, Upgrade\r\nSec-WebSocket-Accept: "+accept+"\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+                        reply=new ByteArrayInputStream(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: keep-alive, Upgrade\r\nSec-WebSocket-Accept: "+accept+"\r\nServer-Timing: cfCacheStatus;desc=\\\"DYNAMIC\\\"\r\nServer-Timing: cfEdge;dur=10\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
                     } catch(Exception e) {throw new IOException(e);}
                 } return reply.read();
             }
         };
         new WssWire(upgrade,network).handshake(u); check(true);
+        // Critical WebSocket fields remain strict even though repeated metadata is accepted.
+        network.reset();
+        InputStream duplicateAccept = new InputStream() {
+            ByteArrayInputStream reply;
+            @Override public int read() throws IOException {
+                if(reply==null) {
+                    String r = new String(request.toByteArray(),StandardCharsets.US_ASCII);
+                    String key = r.split("Sec-WebSocket-Key: ")[1].split("\r\n")[0];
+                    try { String accept=Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((key+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.US_ASCII)));
+                        String response="HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "+accept+"\r\nSec-WebSocket-Accept: "+accept+"\r\n\r\n";
+                        reply=new ByteArrayInputStream(response.getBytes(StandardCharsets.US_ASCII));
+                    } catch(Exception e) {throw new IOException(e);}
+                } return reply.read();
+            }
+        };
+        try { new WssWire(duplicateAccept,network).handshake(u); throw new AssertionError("duplicate accept accepted"); }
+        catch(IOException expected) { checks++; }
         for(String response : new String[]{"HTTP/1.1 403 Forbidden\r\n\r\n", "HTTP/1.1 101 OK\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: wrong\r\n\r\n"}) {
             try { new WssWire(new ByteArrayInputStream(response.getBytes(StandardCharsets.US_ASCII)), new ByteArrayOutputStream()).handshake(u); throw new AssertionError(); }
             catch(IOException expected) {checks++;}
