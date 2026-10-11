@@ -9,5 +9,8 @@ These files are the 1024×1024 artwork returned by Apple's public iTunes Lookup 
 | `wecom.jpg` | 企业微信 | CN | `com.tencent.ww` |
 | `dingtalk.jpg` | 钉钉 | CN | `com.laiwang.DingTalk` |
 | `discord.jpg` | Discord | US | `com.hammerandchisel.discord` |
+| `matrix.png` | Matrix official icon | matrix.org | `matrix-org/matrix.org` |
 
 Lookup endpoint: `https://itunes.apple.com/{storefront}/lookup?bundleId={bundleId}`.
+
+Matrix icon: https://github.com/matrix-org/matrix.org/blob/main/static/branding/icons/matrix-icon.png.

@@ -91,7 +91,7 @@ yarn check
 
 ## 品牌与架构
 
-每次发布构建五个渠道。应用名称和包名后缀分别为：
+每次发布构建六个渠道。应用名称和包名后缀分别为：
 
 | 渠道 | 应用名称 | 包名后缀 |
 | --- | --- | --- |
@@ -100,8 +100,9 @@ yarn check
 | `wecom` | 企业微信 · Cross | `.crossgram.wecom` |
 | `dingtalk` | 钉钉 · Cross | `.crossgram.dingtalk` |
 | `discord` | Discord · Cross | `.crossgram.discord` |
+| `matrix` | Matrix · Cross | `.crossgram.matrix` |
 
-`assets/branding` 中的五张图标由 Apple iTunes Lookup API 按官方 bundle ID 下载并固定，CI 直接使用这些官方高分辨率原图，避免并行构建时受到接口限流。架构 variant 为：
+`assets/branding` 中的五张现有渠道图标由 Apple iTunes Lookup API 下载并固定，Matrix 图标来自 matrix.org 官方品牌资源。CI 从仓库读取图标，不依赖在线图标 API。架构 variant 为：
 
 | variant | ABI |
 | --- | --- |
@@ -112,9 +113,9 @@ yarn check
 
 ## 自动发布
 
-`.github/workflows/release.yml` 每天查询六个上游的 latest release；没有 release 时回退到最新 tag，再回退到默认分支。Telegram、Nagram、Mercurygram 各构建 `arm64` 与 `x86_64`，Nnngram、Nullgram、Forkgram 各构建 `arm64`，共形成 9 个相互隔离的并行 job。`fail-fast` 关闭，单个上游或 ABI 失败不会阻断其他矩阵项；只有完整生成五个品牌 APK 的 job 才会上传并进入统一 Release，同时 workflow 会保留失败状态，避免残缺发布被误报为全绿。
+`.github/workflows/release.yml` 每天查询六个上游的 latest release；没有 release 时回退到最新 tag，再回退到默认分支。Telegram、Nagram、Mercurygram 各构建 `arm64` 与 `x86_64`，Nnngram、Nullgram、Forkgram 各构建 `arm64`，共形成 9 个相互隔离的并行 job。`fail-fast` 关闭，单个上游或 ABI 失败不会阻断其他矩阵项；每个 job 顺序构建六个品牌（含 Matrix），但通过 `apk-<client>-<ABI>-<brand>` 分别上传 Artifact。某一品牌失败时，之前完成的 APK 仍可单独下载并进入统一 Release，job 本身保留失败状态。每个品牌 Artifact 自带对应的 SHA256 校验文件。
 
-点击页面顶部的“一键构建并发布”按钮后，在 Actions 页面点击 `Run workflow`，保持默认的 `publish=true`、`client=all` 即会构建完整 9-job 矩阵并创建一条统一 Release。也可选择单个客户端进行调试；单客户端发布同样只创建一条 Release。
+点击页面顶部的“一键构建并发布”按钮后，在 Actions 页面点击 `Run workflow`，保持默认的 `publish=true`、`client=all` 即会构建完整 9-job 矩阵并创建一条统一 Release。也可选择单个客户端进行调试；单客户端发布同样只创建一条 Release。Matrix · Cross 是 Telegram 衍生客户端的独立包名和图标渠道，用于连接 Crossgram 的 Matrix 适配器，而不是原生 Matrix 客户端（目前服务端只支持未加密房间）。
 
 Nnngram、Nullgram 与 Forkgram 的公开构建链只覆盖 ARM 原生依赖，因此发布矩阵仅构建
 `arm64`；Telegram、Nagram 与 Mercurygram 额外构建 `x86_64`，供模拟器和桌面 Android 环境使用。Forkgram 同时使用 NDK r21e 构建旧版原生依赖，并使用 NDK 27.2 完成 Android external native build。

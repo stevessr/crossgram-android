@@ -1,6 +1,16 @@
 name: Build and publish Crossgram APKs
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'src/**'
+      - 'scripts/ci/**'
+      - 'features/**'
+      - 'assets/branding/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'yarn.lock'
   workflow_dispatch:
     inputs:
       publish:
@@ -23,14 +33,15 @@ on:
     - cron: "17 3 * * *"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: crossgram-upstream-release
-  cancel-in-progress: false
+  group: crossgram-upstream-release-${{ github.event_name == 'pull_request' && github.head_ref || 'publish' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   discover:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       clients: ${{ steps.matrix.outputs.clients }}
@@ -63,6 +74,10 @@ jobs:
       # The suite compiles the injected helpers and drives the patch anchors, so
       # a drifted upstream anchor fails here instead of after the native build.
       - run: yarn check
+      - name: Validate release scripts
+        run: |
+          bash -n scripts/ci/build-upstream.sh
+          python3 -m py_compile scripts/ci/release-manifest.py
 
   build:
     needs:
@@ -127,7 +142,7 @@ jobs:
       - run: corepack enable && yarn install --immutable
       - name: Reset compiler cache statistics
         run: ccache --zero-stats
-      - name: Patch and build five branded APKs
+      - name: Patch and build six branded APKs
         env:
           CROSSGRAM_KEYSTORE_BASE64: ${{ secrets.CROSSGRAM_KEYSTORE_BASE64 }}
           CROSSGRAM_KEYSTORE_PASSWORD: ${{ secrets.CROSSGRAM_KEYSTORE_PASSWORD }}
@@ -148,16 +163,59 @@ jobs:
       - name: Report compiler cache statistics
         if: always()
         run: ccache --show-stats --verbose
-      - uses: actions/upload-artifact@v7
-        if: success()
+      - name: Upload qq APK
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: apk-${{ matrix.id }}-${{ matrix.variant }}
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/
-          if-no-files-found: error
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-qq
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/qq/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload wechat APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-wechat
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wechat/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload wecom APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-wecom
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wecom/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload dingtalk APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-dingtalk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/dingtalk/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload discord APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-discord
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/discord/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload matrix APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-matrix
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/matrix/
+          if-no-files-found: ignore
           retention-days: 14
 
   publish:
     if: ${{ always() && (github.event_name == 'schedule' || inputs.publish) }}
+    permissions:
+      contents: write
     needs: [discover, build]
     runs-on: ubuntu-latest
     name: Publish one unified release
@@ -189,7 +247,7 @@ jobs:
             echo "Included upstream revisions:"
             printf '%s' "$CLIENTS_JSON" | jq -r '.[] | "- \(.id): `\(.ref)` from \(.repository)"'
             echo
-            echo "Only successful 64-bit client builds are attached. Each architecture includes QQ · Cross, 微信 · Cross, 企业微信 · Cross, 钉钉 · Cross and Discord · Cross."
+            echo "Available 64-bit APKs are attached separately by client, ABI and brand (QQ, WeChat, WeCom, DingTalk, Discord, Matrix). A failed brand build may leave earlier successful brand artifacts."
           } > release-notes.md
 
           if ! gh release view "$tag" >/dev/null 2>&1; then

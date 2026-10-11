@@ -124,7 +124,9 @@ if [[ "$CLIENT" == "nagram" ]]; then
   ./run init libs boringssl
 fi
 
-for brand in qq wechat wecom dingtalk discord; do
+for brand in qq wechat wecom dingtalk discord matrix; do
+  BRAND_OUTPUT_ROOT="$OUTPUT_ROOT/$brand"
+  mkdir -p "$BRAND_OUTPUT_ROOT"
   cd "$PATCHER_ROOT"
   corepack yarn run brand --client "$CLIENT" --source "$SOURCE_ROOT" --brand "$brand"
   cd "$SOURCE_ROOT"
@@ -139,16 +141,15 @@ for brand in qq wechat wecom dingtalk discord; do
   found=0
   while IFS= read -r -d '' apk; do
     found=1
-    destination="$OUTPUT_ROOT/${CLIENT}-${VERSION}-${VARIANT}-${brand}-$(basename "$apk")"
+    destination="$BRAND_OUTPUT_ROOT/${CLIENT}-${VERSION}-${VARIANT}-${brand}-$(basename "$apk")"
     cp "$apk" "$destination"
   done < <(find . -type f -path '*/build/outputs/apk/*' -name '*.apk' -print0)
   if [[ "$found" == 0 ]]; then
     echo "No APK produced for $CLIENT/$VARIANT/$brand" >&2
     exit 1
   fi
+  (
+    cd "$BRAND_OUTPUT_ROOT"
+    sha256sum ./*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}-${brand}.txt"
+  )
 done
-
-(
-  cd "$OUTPUT_ROOT"
-  sha256sum ./*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}.txt"
-)
