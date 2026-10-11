@@ -14,12 +14,12 @@ public final class WssBridge {
     private static final ScheduledExecutorService WATCH = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "crossgram-wss-watch"); t.setDaemon(true); return t;
     });
-    public static boolean open(int account, int dc, int fd) {
+    public static boolean open(int account, int dc, int fd, String identity) {
         ParcelFileDescriptor local = ParcelFileDescriptor.adoptFd(fd);
         boolean acquired = false;
         try {
             if (android.os.Build.VERSION.SDK_INT < 24) throw new IOException("wss_requires_android_7");
-            WssUrl url = ServerSwitchConfig.wssUrl(account, dc);
+            WssUrl url = ServerSwitchConfig.wssUrl(account, dc, identity);
             if (!SLOTS.tryAcquire()) throw new IOException("wss_connection_limit");
             acquired = true;
             Tunnel tunnel = new Tunnel(local, url);
@@ -43,6 +43,9 @@ public final class WssBridge {
         void close(String reason) {
             if (!closed.compareAndSet(false, true)) return;
             FileLog.e("crossgram_wss=" + reason); // Never log URL/query, key, or payload.
+            // close(fd) alone need not interrupt another thread's Unix-socket read.
+            // shutdown wakes both bridge workers and the native epoll peer first.
+            try { android.system.Os.shutdown(local.getFileDescriptor(), android.system.OsConstants.SHUT_RDWR); } catch (Exception ignored) { }
             try { if (tcp != null) tcp.close(); } catch (IOException ignored) { }
             try { local.close(); } catch (IOException ignored) { }
             try { if (tls != null) tls.close(); } catch (IOException ignored) { }

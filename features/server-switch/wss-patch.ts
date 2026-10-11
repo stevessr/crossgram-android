@@ -18,13 +18,21 @@ export async function patchWss(sourceRoot: string, changed: string[]): Promise<v
   }
   const binding = "TMessagesProj/jni/tgnet/CrossgramWssBinding.h";
   if (await writeUtf8IfChanged(path.join(sourceRoot, binding), await readUtf8(path.join(root, "files/native/wss-binding.h")))) changed.push(binding);
-  await edit("TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java", s => insert(s,
+  await edit("TMessagesProj/src/main/java/org/telegram/tgnet/ConnectionsManager.java", s => insert(s
+    .replace("openCrossgramWss(int account, int dc, int fd)", "openCrossgramWss(int account, int dc, int fd, String identity)")
+    .replace("WssBridge.open(account, dc, fd);", "WssBridge.open(account, dc, fd, identity);"),
     "    public static native void native_setServerConfig(",
-    "    public static boolean openCrossgramWss(int account, int dc, int fd) {\n        return org.telegram.messenger.server_switch.WssBridge.open(account, dc, fd);\n    }\n\n",
+    "    public static boolean openCrossgramWss(int account, int dc, int fd, String identity) {\n        return org.telegram.messenger.server_switch.WssBridge.open(account, dc, fd, identity);\n    }\n\n",
     "boolean openCrossgramWss(", "ConnectionsManager.java"));
   const wrapper = await readUtf8(path.join(root, "files/native/wss-wrapper.cpp"));
-  await edit("TMessagesProj/jni/TgNetWrapper.cpp", s => insert(s, "jlong getFreeBuffer(", wrapper + "\n", "bool crossgramOpenWss(", "TgNetWrapper.cpp"));
-  await edit("TMessagesProj/jni/tgnet/ConnectionsManager.h", s => insert(s, "    bool hasCustomServer() const;",
+  await edit("TMessagesProj/jni/TgNetWrapper.cpp", s => {
+    s = insert(s, "jlong getFreeBuffer(", wrapper + "\n", "bool crossgramOpenWss(", "TgNetWrapper.cpp");
+    return editDeclarationBody(s, /bool\s+crossgramOpenWss\s*\(/, "TgNetWrapper.cpp", "pin WSS native identity",
+      () => wrapper.slice(wrapper.indexOf("{") + 1, wrapper.lastIndexOf("}")));
+  });
+  await edit("TMessagesProj/jni/tgnet/ConnectionsManager.h", s => insert(insert(s, "    bool hasCustomServer() const;",
+    "    const std::string &getWssServerIdentity() const { return customServerId; }\n",
+    "getWssServerIdentity() const", "ConnectionsManager.h"), "    bool hasCustomServer() const;",
     "    bool isWssServer() const { return customServerId.compare(0, 4, \"wss:\") == 0; }\n    bool crossgramServerBlocked = false;\n    std::string crossgramKeyIdentity;\n",
     "bool isWssServer() const", "ConnectionsManager.h"));
   await edit("TMessagesProj/jni/tgnet/ConnectionsManager.cpp", s => {

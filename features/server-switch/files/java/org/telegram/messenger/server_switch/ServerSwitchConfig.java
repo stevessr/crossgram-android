@@ -308,11 +308,12 @@ public final class ServerSwitchConfig {
         }
     }
 
-    public static WssUrl wssUrl(int account, int dc) {
+    public static WssUrl wssUrl(int account, int dc, String expectedIdentity) {
         synchronized (LOCK) {
             Store store = getStore();
             Server server = findSelectedServer(store, account);
             if (store.invalid || server == null || !server.transport.equals("websocket")) throw new IllegalStateException("WSS configuration unavailable");
+            if (!server.nativeIdentity().equals(expectedIdentity)) throw new IllegalStateException("WSS selection changed during connection setup");
             for (Dc entry : server.dcs) if (entry.id == dc) return new WssUrl(entry.websocketUrl);
             throw new IllegalArgumentException("Unmapped WSS DC");
         }

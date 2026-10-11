@@ -82,7 +82,8 @@ key-file encryption policy. Existing official/TCP records without extension
 retain legacy behavior. WSS never adopts unbound existing keys. Identity
 mismatch, a corrupted extension/store, or a missing selected configuration keeps
 the slot offline and preserves its key file; no official/TCP fallback occurs.
-Signed-in slots cannot switch server (including switching to official). Use a
+Each JNI connection callback pins the native identity; a concurrent selection change
+is rejected before opening TLS, including a failed store write. Signed-in slots cannot switch server (including switching to official). Use a
 new empty slot. Changing URL/RSA/DC routing of a signed-in WSS slot requires a
 new slot or explicit logout first. Do not downgrade an active WSS account to an
 old client that does not enforce this binding.
