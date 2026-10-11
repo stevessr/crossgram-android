@@ -1,6 +1,16 @@
 name: Build and publish Crossgram APKs
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'src/**'
+      - 'scripts/ci/**'
+      - 'features/**'
+      - 'assets/branding/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'yarn.lock'
   workflow_dispatch:
     inputs:
       publish:
@@ -23,14 +33,15 @@ on:
     - cron: "17 3 * * *"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: crossgram-upstream-release
-  cancel-in-progress: false
+  group: crossgram-upstream-release-${{ github.event_name == 'pull_request' && github.head_ref || 'publish' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   discover:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       clients: ${{ steps.matrix.outputs.clients }}
@@ -63,6 +74,10 @@ jobs:
       # The suite compiles the injected helpers and drives the patch anchors, so
       # a drifted upstream anchor fails here instead of after the native build.
       - run: yarn check
+      - name: Validate release scripts
+        run: |
+          bash -n scripts/ci/build-upstream.sh
+          python3 -m py_compile scripts/ci/release-manifest.py
 
   build:
     needs:
@@ -200,6 +215,8 @@ jobs:
 
   publish:
     if: ${{ always() && (github.event_name == 'schedule' || inputs.publish) }}
+    permissions:
+      contents: write
     needs: [discover, build]
     runs-on: ubuntu-latest
     name: Publish one unified release
