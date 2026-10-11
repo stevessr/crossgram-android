@@ -113,7 +113,7 @@ yarn check
 
 ## 自动发布
 
-`.github/workflows/release.yml` 每天查询六个上游的 latest release；没有 release 时回退到最新 tag，再回退到默认分支。Telegram、Nagram、Mercurygram 各构建 `arm64` 与 `x86_64`，Nnngram、Nullgram、Forkgram 各构建 `arm64`，共形成 9 个相互隔离的并行 job。`fail-fast` 关闭，单个上游或 ABI 失败不会阻断其他矩阵项；每个 job 顺序构建六个品牌（含 Matrix），但通过 `apk-<client>-<ABI>-<brand>` 分别上传 Artifact。某一品牌失败时，之前完成的 APK 仍可单独下载并进入统一 Release，job 本身保留失败状态。架构校验和单独上传。
+`.github/workflows/release.yml` 每天查询六个上游的 latest release；没有 release 时回退到最新 tag，再回退到默认分支。Telegram、Nagram、Mercurygram 各构建 `arm64` 与 `x86_64`，Nnngram、Nullgram、Forkgram 各构建 `arm64`，共形成 9 个相互隔离的并行 job。`fail-fast` 关闭，单个上游或 ABI 失败不会阻断其他矩阵项；每个 job 顺序构建六个品牌（含 Matrix），但通过 `apk-<client>-<ABI>-<brand>` 分别上传 Artifact。某一品牌失败时，之前完成的 APK 仍可单独下载并进入统一 Release，job 本身保留失败状态。每个品牌 Artifact 自带对应的 SHA256 校验文件。
 
 点击页面顶部的“一键构建并发布”按钮后，在 Actions 页面点击 `Run workflow`，保持默认的 `publish=true`、`client=all` 即会构建完整 9-job 矩阵并创建一条统一 Release。也可选择单个客户端进行调试；单客户端发布同样只创建一条 Release。Matrix · Cross 是 Telegram 衍生客户端的独立包名和图标渠道，用于连接 Crossgram 的 Matrix 适配器，而不是原生 Matrix 客户端（目前服务端只支持未加密房间）。
 

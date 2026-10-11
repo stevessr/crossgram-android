@@ -154,7 +154,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-qq
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/qq/*.apk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/qq/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload wechat APK
@@ -162,7 +162,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-wechat
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wechat/*.apk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wechat/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload wecom APK
@@ -170,7 +170,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-wecom
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wecom/*.apk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wecom/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload dingtalk APK
@@ -178,7 +178,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-dingtalk
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/dingtalk/*.apk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/dingtalk/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload discord APK
@@ -186,7 +186,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-discord
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/discord/*.apk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/discord/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload matrix APK
@@ -194,15 +194,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: apk-${{ matrix.id }}-${{ matrix.variant }}-matrix
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/matrix/*.apk
-          if-no-files-found: ignore
-          retention-days: 14
-      - name: Upload architecture checksums
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: apk-${{ matrix.id }}-${{ matrix.variant }}-checksums
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/SHA256SUMS-${{ matrix.id }}-${{ matrix.variant }}.txt
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/matrix/
           if-no-files-found: ignore
           retention-days: 14
 

@@ -159,9 +159,8 @@ for brand in qq wechat wecom dingtalk discord matrix; do
     echo "No APK produced for $CLIENT/$VARIANT/$brand" >&2
     exit 1
   fi
+  (
+    cd "$BRAND_OUTPUT_ROOT"
+    sha256sum ./*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}-${brand}.txt"
+  )
 done
-
-(
-  cd "$OUTPUT_ROOT"
-  sha256sum ./*/*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}.txt"
-)

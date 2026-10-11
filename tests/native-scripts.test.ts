@@ -26,8 +26,8 @@ describe("build scripts", () => {
   it("writes portable artifact checksums", async () => {
     const source = await readFile(ciScript, "utf8");
 
-    expect(source).toContain('cd "$OUTPUT_ROOT"');
-    expect(source).toContain('sha256sum ./*/*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}.txt"');
+    expect(source).toContain('cd "$BRAND_OUTPUT_ROOT"');
+    expect(source).toContain('sha256sum ./*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}-${brand}.txt"');
     expect(source).not.toContain('sha256sum "$OUTPUT_ROOT"/*.apk');
     expect(source).toContain('for brand in qq wechat wecom dingtalk discord matrix; do');
     expect(source).toContain('BRAND_OUTPUT_ROOT="$OUTPUT_ROOT/$brand"');
