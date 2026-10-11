@@ -18,6 +18,8 @@ describe("release update manifest", () => {
       const forkgram = "forkgram-12.10.6.0-arm64-qq-app.apk";
       await writeFile(path.join(directory, nagram), "nagram-bytes");
       await writeFile(path.join(directory, forkgram), "forkgram-bytes");
+      const matrix = "nagram-1248-arm64-matrix-Nagram-v12.10.1(1248).apk";
+      await writeFile(path.join(directory, matrix), "matrix-bytes");
       await writeFile(path.join(directory, "SHA256SUMS-nagram-arm64.txt"), `abc  ./${nagram}\n`);
       await writeFile(path.join(directory, "notes.md"), "说明\n");
 
@@ -42,6 +44,8 @@ describe("release update manifest", () => {
         sha256: createHash("sha256").update("nagram-bytes").digest("hex"),
       });
       expect(byClient.forkgram.url).toMatch(/\/crossgram-107\/forkgram-12\.10\.6\.0-arm64-qq-app\.apk$/);
+      expect(manifest.assets.some((asset: { brand: string; url: string }) =>
+        asset.brand === "matrix" && asset.url.includes("-arm64-matrix-"))).toBe(true);
       for (const asset of manifest.assets) {
         expect(path.basename(asset.url)).toMatch(/^[A-Za-z0-9._-]+$/);
       }

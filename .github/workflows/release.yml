@@ -127,7 +127,7 @@ jobs:
       - run: corepack enable && yarn install --immutable
       - name: Reset compiler cache statistics
         run: ccache --zero-stats
-      - name: Patch and build five branded APKs
+      - name: Patch and build six branded APKs
         env:
           CROSSGRAM_BUILD_ONLY: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
           CROSSGRAM_KEYSTORE_BASE64: ${{ secrets.CROSSGRAM_KEYSTORE_BASE64 }}
@@ -149,12 +149,61 @@ jobs:
       - name: Report compiler cache statistics
         if: always()
         run: ccache --show-stats --verbose
-      - uses: actions/upload-artifact@v7
-        if: success()
+      - name: Upload qq APK
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: apk-${{ matrix.id }}-${{ matrix.variant }}
-          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/
-          if-no-files-found: error
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-qq
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/qq/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload wechat APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-wechat
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wechat/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload wecom APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-wecom
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/wecom/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload dingtalk APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-dingtalk
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/dingtalk/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload discord APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-discord
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/discord/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload matrix APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-matrix
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/matrix/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload architecture checksums
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-${{ matrix.id }}-${{ matrix.variant }}-checksums
+          path: artifacts/${{ matrix.id }}/${{ matrix.variant }}/SHA256SUMS-${{ matrix.id }}-${{ matrix.variant }}.txt
+          if-no-files-found: ignore
           retention-days: 14
 
   publish:
@@ -190,7 +239,7 @@ jobs:
             echo "Included upstream revisions:"
             printf '%s' "$CLIENTS_JSON" | jq -r '.[] | "- \(.id): `\(.ref)` from \(.repository)"'
             echo
-            echo "Only successful 64-bit client builds are attached. Each architecture includes QQ · Cross, 微信 · Cross, 企业微信 · Cross, 钉钉 · Cross and Discord · Cross."
+            echo "Available 64-bit APKs are attached separately by client, ABI and brand (QQ, WeChat, WeCom, DingTalk, Discord, Matrix). A failed brand build may leave earlier successful brand artifacts."
           } > release-notes.md
 
           if ! gh release view "$tag" >/dev/null 2>&1; then

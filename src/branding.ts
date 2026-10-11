@@ -1,17 +1,17 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 
 import { readUtf8, writeBinaryIfChanged, writeUtf8IfChanged } from "./core/files.js";
 import { PatchError } from "./core/text-edit.js";
 import type { Upstream } from "./upstreams.js";
 
-export type BrandId = "qq" | "wechat" | "wecom" | "dingtalk" | "discord";
+export type BrandId = "qq" | "wechat" | "wecom" | "dingtalk" | "discord" | "matrix";
 
 export interface Brand {
   id: BrandId;
   title: string;
-  storefront: "cn" | "us";
-  bundleId: string;
+  storefront?: "cn" | "us";
+  bundleId?: string;
 }
 
 export const brands: readonly Brand[] = [
@@ -20,6 +20,7 @@ export const brands: readonly Brand[] = [
   { id: "wecom", title: "企业微信 · Cross", storefront: "cn", bundleId: "com.tencent.ww" },
   { id: "dingtalk", title: "钉钉 · Cross", storefront: "cn", bundleId: "com.laiwang.DingTalk" },
   { id: "discord", title: "Discord · Cross", storefront: "us", bundleId: "com.hammerandchisel.discord" },
+  { id: "matrix", title: "Matrix · Cross" },
 ] as const;
 
 export function getBrand(id: string): Brand {
@@ -29,7 +30,8 @@ export function getBrand(id: string): Brand {
 }
 
 async function downloadOfficialIcon(brand: Brand): Promise<Uint8Array> {
-  return new Uint8Array(await readFile(path.resolve("assets", "branding", `${brand.id}.jpg`)));
+  const extension = brand.id === "matrix" ? "png" : "jpg";
+  return new Uint8Array(await readFile(path.resolve("assets", "branding", `${brand.id}.${extension}`)));
 }
 
 function brandGradleBlock(brand: Brand, kotlinDsl: boolean): string {
@@ -270,7 +272,18 @@ export async function applyBrand(root: string, upstream: Upstream, brand: Brand)
   if (await writeUtf8IfChanged(path.join(root, nameRelative), nameXml)) changed.push(nameRelative);
 
   const icon = await downloadOfficialIcon(brand);
-  const iconRelative = "TMessagesProj/src/main/res/mipmap-xxxhdpi/crossgram_launcher.jpg";
+  // Android does not allow two resources named crossgram_launcher with different extensions.
+  const iconDir = "TMessagesProj/src/main/res/mipmap-xxxhdpi";
+  const extension = brand.id === "matrix" ? "png" : "jpg";
+  const staleExtension = extension === "png" ? "jpg" : "png";
+  const staleRelative = `${iconDir}/crossgram_launcher.${staleExtension}`;
+  try {
+    await unlink(path.join(root, staleRelative));
+    changed.push(staleRelative);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const iconRelative = `${iconDir}/crossgram_launcher.${extension}`;
   if (await writeBinaryIfChanged(path.join(root, iconRelative), icon)) changed.push(iconRelative);
   return changed;
 }

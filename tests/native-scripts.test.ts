@@ -27,8 +27,15 @@ describe("build scripts", () => {
     const source = await readFile(ciScript, "utf8");
 
     expect(source).toContain('cd "$OUTPUT_ROOT"');
-    expect(source).toContain('sha256sum ./*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}.txt"');
+    expect(source).toContain('sha256sum ./*/*.apk > "SHA256SUMS-${CLIENT}-${VARIANT}.txt"');
     expect(source).not.toContain('sha256sum "$OUTPUT_ROOT"/*.apk');
+    expect(source).toContain('for brand in qq wechat wecom dingtalk discord matrix; do');
+    expect(source).toContain('BRAND_OUTPUT_ROOT="$OUTPUT_ROOT/$brand"');
+    const workflow = await readFile(releaseWorkflow, "utf8");
+    for (const brand of ["qq", "wechat", "wecom", "dingtalk", "discord", "matrix"]) {
+      expect(workflow).toContain("name: apk-${{ matrix.id }}-${{ matrix.variant }}-" + brand);
+    }
+    expect(workflow).toContain("merge-multiple: true");
   });
 
   it("injects one default API identity while allowing complete secret overrides", async () => {

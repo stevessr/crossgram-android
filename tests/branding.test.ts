@@ -31,6 +31,25 @@ async function createApp(): Promise<string> {
 }
 
 describe("applyBrand", () => {
+  it("switches into and out of the Matrix PNG channel", async () => {
+    const root = await createApp();
+    const upstream = getUpstream("nagram");
+    await applyBrand(root, upstream, getBrand("qq"));
+    await applyBrand(root, upstream, getBrand("matrix"));
+    const dir = path.join(root, "TMessagesProj/src/main/res/mipmap-xxxhdpi");
+    const icon = await readFile(path.join(dir, "crossgram_launcher.png"));
+    expect(icon.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    await expect(readFile(path.join(dir, "crossgram_launcher.jpg"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(path.join(root, "TMessagesProj/src/main/res/values/crossgram_brand.xml"), "utf8"))
+      .toContain("Matrix · Cross");
+    expect(await readFile(path.join(root, "TMessagesProj/build.gradle"), "utf8"))
+      .toContain(".crossgram.matrix");
+    await applyBrand(root, upstream, getBrand("qq"));
+    await expect(readFile(path.join(dir, "crossgram_launcher.png"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await readFile(path.join(dir, "crossgram_launcher.jpg"))).subarray(0, 3))
+      .toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+  });
+
   it("switches titles, package suffixes and the downloaded official icon in place", async () => {
     const root = await createApp();
     await applyBrand(root, getUpstream("nagram"), getBrand("qq"));

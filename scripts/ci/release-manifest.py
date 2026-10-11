@@ -18,7 +18,7 @@ import sys
 
 ASSET_PATTERN = re.compile(
     r"^(?P<client>[a-z]+)-(?P<version>.+)-(?P<variant>arm64|x86_64)"
-    r"-(?P<brand>qq|wechat|wecom|dingtalk|discord)-.+\.apk$"
+    r"-(?P<brand>qq|wechat|wecom|dingtalk|discord|matrix)-.+\.apk$"
 )
 
 
