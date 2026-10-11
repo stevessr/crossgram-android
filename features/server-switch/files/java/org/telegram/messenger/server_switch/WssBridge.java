@@ -43,6 +43,9 @@ public final class WssBridge {
         void close(String reason) {
             if (!closed.compareAndSet(false, true)) return;
             FileLog.e("crossgram_wss=" + reason); // Never log URL/query, key, or payload.
+            // close(fd) alone need not interrupt another thread's Unix-socket read.
+            // shutdown wakes both bridge workers and the native epoll peer first.
+            try { android.system.Os.shutdown(local.getFileDescriptor(), android.system.OsConstants.SHUT_RDWR); } catch (Exception ignored) { }
             try { if (tcp != null) tcp.close(); } catch (IOException ignored) { }
             try { local.close(); } catch (IOException ignored) { }
             try { if (tls != null) tls.close(); } catch (IOException ignored) { }

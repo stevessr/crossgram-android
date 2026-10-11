@@ -29,6 +29,12 @@ void ConnectionSocket::writeBuffer(NativeByteBuffer *buffer) { send(); }`,
     const second: string[] = []; await patchWss(dir, second); expect(second).toEqual([]);
     const read = (f: string) => readFile(path.join(dir, "TMessagesProj/jni/tgnet", f), "utf8");
     expect(await read("Connection.cpp")).toContain("crossgramServerBlocked) return;");
+    const bridge = await readFile(path.join(dir, "TMessagesProj/src/main/java/org/telegram/messenger/server_switch/WssBridge.java"), "utf8");
+    expect(bridge).toContain("android.system.Os.shutdown(local.getFileDescriptor()");
+    expect(bridge).toContain("ServerSwitchConfig.wssUrl(account, dc, identity)");
+    const wrapper = await readFile(path.join(dir, "TMessagesProj/jni/TgNetWrapper.cpp"), "utf8");
+    expect(wrapper).toContain("(IIILjava/lang/String;)Z");
+    expect(wrapper).toContain("getWssServerIdentity().c_str()");
     expect(await read("Connection.cpp")).toContain('hostAddress = "wss:"');
     expect(await read("ConnectionSocket.cpp")).toContain("socketpair(AF_UNIX");
     expect(await read("ConnectionSocket.cpp")).toContain("crossgramQueuedBytes() + buffer->remaining() > 8 * 1024 * 1024");
