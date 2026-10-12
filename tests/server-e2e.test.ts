@@ -494,6 +494,19 @@ describe("Android server E2E source driver", () => {
     expect(script).not.toContain("release.keystore.base64");
   });
 
+  it("uses a persistent test keystore only for build-only APKs", async () => {
+    const script = await readFile(path.resolve("scripts/ci/build-upstream.sh"), "utf8");
+    const workflow = await readFile(path.resolve(".github/workflows/release.yml"), "utf8");
+
+    expect(script).toContain("CROSSGRAM_TEST_KEYSTORE_BASE64");
+    expect(script).toContain("Test keystore is only permitted for build-only artifacts");
+    expect(script).toContain('CROSSGRAM_BUILD_ONLY:-false');
+    expect(script).toContain("CROSSGRAM_TEST_KEYSTORE_PASSWORD");
+    expect(script).toContain("CROSSGRAM_TEST_KEY_ALIAS");
+    expect(workflow).toContain("CROSSGRAM_TEST_KEYSTORE_BASE64: ${{ secrets.CROSSGRAM_TEST_KEYSTORE_BASE64 }}");
+    expect(workflow).toContain("CROSSGRAM_TEST_KEY_PASSWORD: ${{ secrets.CROSSGRAM_TEST_KEY_PASSWORD }}");
+  });
+
   it("runs the built APK on API 35 and requires changing GIF/APNG frames", async () => {
     const script = await readFile(path.resolve("scripts/ci/run-raw-animation-avd-e2e.sh"), "utf8");
     const workflow = await readFile(path.resolve(".github/workflows/android-server-e2e.yml"), "utf8");

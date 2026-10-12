@@ -71,8 +71,21 @@ mkdir -p "$SIGNING_DIR"
 KEYSTORE="$SIGNING_DIR/release.keystore"
 if [[ -n "${CROSSGRAM_KEYSTORE_BASE64:-}" ]]; then
   printf '%s' "$CROSSGRAM_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+elif [[ -n "${CROSSGRAM_TEST_KEYSTORE_BASE64:-}" ]]; then
+  # Build-only APKs use one persistent test identity so artifacts from
+  # separate Actions runs can update each other. Keep this key distinct from
+  # the production release key and never use it for a published release.
+  if [[ "${CROSSGRAM_BUILD_ONLY:-false}" != true ]]; then
+    echo "Test keystore is only permitted for build-only artifacts" >&2
+    exit 1
+  fi
+  printf '%s' "$CROSSGRAM_TEST_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+  export CROSSGRAM_KEYSTORE_PASSWORD=${CROSSGRAM_TEST_KEYSTORE_PASSWORD:?Missing test keystore password}
+  export CROSSGRAM_KEY_PASSWORD=${CROSSGRAM_TEST_KEY_PASSWORD:?Missing test key password}
+  export CROSSGRAM_KEY_ALIAS=${CROSSGRAM_TEST_KEY_ALIAS:?Missing test key alias}
 elif [[ "${CROSSGRAM_BUILD_ONLY:-false}" == true ]]; then
-  # Build-only artifacts must not require or publish production signing material.
+  # Build-only artifacts without configured signing secrets are intentionally
+  # ephemeral and cannot update APKs produced by a different workflow run.
   export CROSSGRAM_KEYSTORE_PASSWORD=android CROSSGRAM_KEY_PASSWORD=android CROSSGRAM_KEY_ALIAS=crossgram-test
   keytool -genkeypair -noprompt -keystore "$KEYSTORE" -storepass android -keypass android \
     -alias crossgram-test -keyalg RSA -keysize 2048 -validity 2 -dname "CN=Crossgram CI Test Only"
