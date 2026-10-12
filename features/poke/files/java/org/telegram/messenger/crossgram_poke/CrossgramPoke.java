@@ -17,6 +17,7 @@ import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.ItemOptions;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.Set;
@@ -44,8 +45,8 @@ public final class CrossgramPoke {
     private static final long PROBE_RETRY_MS = 60 * 1000L;
 
     private static final Map<String, Integer> MAX_COUNTS = new ConcurrentHashMap<>();
-    private static final Set<String> REJECTED = ConcurrentHashMap.newKeySet();
-    private static final Set<Integer> UNAVAILABLE_ACCOUNTS = ConcurrentHashMap.newKeySet();
+    private static final Set<String> REJECTED = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    private static final Set<Integer> UNAVAILABLE_ACCOUNTS = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>());
     private static final Map<String, Long> PROBED_AT = new ConcurrentHashMap<>();
     private static final Map<View, Object> EXPANDED_FOR = new WeakHashMap<>();
 

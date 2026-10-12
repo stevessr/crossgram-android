@@ -19,6 +19,13 @@ describe("poke Android runtime", () => {
     expect(runtime).toContain("TLRPC.Bool.TLdeserialize(stream, constructor, exception)");
   });
 
+  it("uses Android-compatible concurrent set initialization", () => {
+    const runtime = readFileSync(path.resolve(helper), "utf8");
+    expect(runtime).toContain("Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>())");
+    expect(runtime).toContain("Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>())");
+    expect(runtime).not.toContain("ConcurrentHashMap.newKeySet()");
+  });
+
   it("offers the single poke on tap and the burst rows on hold", () => {
     const runtime = readFileSync(path.resolve(helper), "utf8");
     expect(runtime).toContain("BURST_COUNTS = new int[]{1, 5, 10};");
