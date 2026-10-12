@@ -195,7 +195,7 @@ describe("build scripts", () => {
     expect(workflow).toContain("ccache --show-stats --verbose");
     expect(workflow).toContain("matrix.id }}-${{ matrix.variant");
     // Yarn 4 uses a global cache folder instead of Yarn 1's classic path.
-    expect(workflow.match(/path: ~\\/\\.yarn\\/berry\\/cache/g)).toHaveLength(3);
+    expect(workflow.split("path: ~/.yarn/berry/cache")).toHaveLength(4);
     expect(workflow).toContain("hashFiles('yarn.lock')");
   });
 });
