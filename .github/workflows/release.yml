@@ -51,6 +51,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      # Yarn 4's global package cache is not the classic Yarn 1 cache folder.
+      # Share immutable package archives across discovery, tests and builds.
+      - name: Restore Yarn 4 package cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn4-${{ runner.os }}-node24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            yarn4-${{ runner.os }}-node24-
       - run: corepack enable && yarn install --immutable
       - id: matrix
         env:
@@ -66,6 +75,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      # Yarn 4's global package cache is not the classic Yarn 1 cache folder.
+      # Share immutable package archives across discovery, tests and builds.
+      - name: Restore Yarn 4 package cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn4-${{ runner.os }}-node24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            yarn4-${{ runner.os }}-node24-
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -90,7 +108,12 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content
       CCACHE_NOHASHDIR: "true"
-      CCACHE_MAXSIZE: 500M
+      # Native compilation dominates the six-brand build. Keep a bounded,
+      # compressed cache per client / ABI / NDK; never cache patched trees,
+      # keystores, local.properties or APK intermediates.
+      CCACHE_MAXSIZE: 750M
+      CCACHE_COMPRESS: "true"
+      CCACHE_COMPRESSLEVEL: "3"
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -101,6 +124,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      # Yarn 4's global package cache is not the classic Yarn 1 cache folder.
+      # Share immutable package archives across discovery, tests and builds.
+      - name: Restore Yarn 4 package cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn4-${{ runner.os }}-node24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            yarn4-${{ runner.os }}-node24-
       - uses: android-actions/setup-android@v4
       - name: Install client NDK
         env:
@@ -129,13 +161,18 @@ jobs:
         run: >-
           rustup target add
           aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+      # Cache archives are immutable: using a fixed key stops ccache from
+      # improving after the first run. Restore the newest compatible snapshot
+      # and always save new compiler results under a per-run key.
       - name: Restore C and C++ compiler cache
-        uses: actions/cache@v6
+        id: ccache
+        uses: actions/cache/restore@v6
         with:
           path: .cache/ccache
-          key: ccache-v1-${{ runner.os }}-${{ matrix.id }}-${{ matrix.variant }}-${{ matrix.ref }}-${{ matrix.ndkVersion }}-${{ hashFiles('src/build/prepare.ts', 'features/**', 'scripts/ci/**') }}
+          key: ccache-v2-${{ runner.os }}-${{ matrix.id }}-${{ matrix.variant }}-${{ matrix.ndkVersion }}-${{ matrix.ref }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ccache-v1-${{ runner.os }}-${{ matrix.id }}-${{ matrix.variant }}-
+            ccache-v2-${{ runner.os }}-${{ matrix.id }}-${{ matrix.variant }}-${{ matrix.ndkVersion }}-${{ matrix.ref }}-
+            ccache-v2-${{ runner.os }}-${{ matrix.id }}-${{ matrix.variant }}-${{ matrix.ndkVersion }}-
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: false
@@ -163,7 +200,26 @@ jobs:
           "${{ matrix.nativeDepsNdkVersion }}"
       - name: Report compiler cache statistics
         if: always()
-        run: ccache --show-stats --verbose
+        env:
+          RESTORED_CCACHE_KEY: ${{ steps.ccache.outputs.cache-matched-key }}
+        run: |
+          ccache --show-stats --verbose
+          {
+            printf '### C/C++ cache: %s / %s\n\n' "${{ matrix.id }}" "${{ matrix.variant }}"
+            printf 'Restored snapshot: `%s`\n\n' "${RESTORED_CCACHE_KEY:-cold cache}"
+            echo '```text'
+            ccache --show-stats
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # Run-specific save keys ensure even failed builds can contribute usable
+      # compiler objects to the next run without caching signing credentials.
+      - name: Save refreshed C and C++ compiler cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
       - name: Upload qq APK
         if: always()
         uses: actions/upload-artifact@v7
