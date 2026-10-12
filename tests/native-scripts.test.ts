@@ -179,12 +179,23 @@ describe("build scripts", () => {
   it("persists a bounded compiler cache for native builds", async () => {
     const workflow = await readFile(releaseWorkflow, "utf8");
 
-    expect(workflow).toContain("uses: actions/cache@v6");
+    // Restore the newest compatible snapshot and publish fresh compiler
+    // results under a unique key on every run (including failed builds).
+    expect(workflow).toContain("uses: actions/cache/restore@v6");
+    expect(workflow).toContain("uses: actions/cache/save@v6");
+    expect(workflow).toContain("id: ccache");
     expect(workflow).toContain("path: .cache/ccache");
-    expect(workflow).toContain("CCACHE_MAXSIZE: 500M");
+    expect(workflow).toContain("CCACHE_MAXSIZE: 750M");
     expect(workflow).toContain("CCACHE_COMPILERCHECK: content");
+    expect(workflow).toContain("github.run_id");
+    expect(workflow).toContain("github.run_attempt");
+    expect(workflow).toContain("steps.ccache.outputs.cache-primary-key");
+    expect(workflow).toContain("steps.ccache.outputs.cache-matched-key");
     expect(workflow).toContain("ccache --zero-stats");
     expect(workflow).toContain("ccache --show-stats --verbose");
     expect(workflow).toContain("matrix.id }}-${{ matrix.variant");
+    // Yarn 4 uses a global cache folder instead of Yarn 1's classic path.
+    expect(workflow.split("path: ~/.yarn/berry/cache")).toHaveLength(4);
+    expect(workflow).toContain("hashFiles('yarn.lock')");
   });
 });
